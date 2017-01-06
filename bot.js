@@ -1,11 +1,20 @@
 var Discord = require("discord.js");
 var request = require('request');
 var cheerio = require('cheerio');
+var webshot = require('webshot');
 var bot = new Discord.Client();
+var jsonfile = require('jsonfile');
 
 var users = {}
 
 var wordlist = {}
+
+var options = {
+	shotSize: {
+		width:'all',
+		height:'all'
+	}
+}
 
 var lastSender;
 
@@ -14,8 +23,7 @@ bot.on("message", msg => {
         if (msg.content == "!setup"){
         	if (msg.channel.type == "dm"){
 	        	if (msg.author.id in users == false) {
-	        		users[msg.author.id] = [msg.author, true, 0, false];
-	        		console.log(users[msg.author.id][0]);
+	        		users[msg.author.id] = [msg.author, true, 0, false, false];
 	        		msg.channel.sendMessage("Added to the user list!");
 	        	} else {
 	        		msg.channel.sendMessage("Already on the user list!");
@@ -40,13 +48,26 @@ bot.on("message", msg => {
 	        		wordlist[currentWord][wordlist[currentWord].length] = msg.author.id;
 	        	}
 
-	        msg.channel.sendMessage("Words added to your keyword list!");
+	        msg.channel.sendMessage("Word(s) added to your keyword list!");
 
+	        } else if (message.startsWith("remove ")){
+	        	message = message.slice(7);
+        		words = message.split(" ");
+	        	for (var i = 0; i < words.length; i++) {
+	        		var currentWord = words[i];
+		        		if(currentWord in wordlist){
+		        		var index = wordlist[currentWord].indexOf(msg.author.id);
+		        		if (index > -1){
+		        			wordlist[currentWord].splice(index,1);
+		        		}
+	        		}
+	        	}
+	        	msg.channel.sendMessage("Word(s) cleared from keyword list!");
 	        }
         }
 
         if (msg.content == "!words") {
-        	msg.channel.sendMessage("Type !words add <words> to add words to your keyword list. Seperate words by spaces. You can add names as well, such as FalseHonesty (Caps are important). These will be the words that will notify you if you select that setting.");
+        	msg.channel.sendMessage("Type !words add <words> to add words to your keyword list. Seperate words by spaces. You can add names as well, such as FalseHonesty (Caps are important). These will be the words that will notify you if you select that setting. Type !words remove <words> to remove certain words.");
         }
 
         if (msg.content.startsWith("!notifs ")){
@@ -67,13 +88,31 @@ bot.on("message", msg => {
         	}
         }
 
-        if (msg.content.startsWith("!notifs")) {
+        if (msg.content == "!notifs") {
         	msg.channel.sendMessage("Type !notifs on to turn on notifications. \nType !notifs off to turn notifications off. \nType !notifs all to receive notification (when on) for all profile posts. \nType !notifs keywords to receive notifications for only your keywords and usernames. (Set these with !words)")
         }
 
         if (msg.content == "!help") {
-        	msg.channel.sendMessage("Type !setup in a direct message to me to activate you as a user. \nType !words add <words> to add words to your keyword list. Just type !words for more help on that. \nType !notifs for notification options.");
+        	msg.channel.sendMessage("Type !setup in a direct message to me to activate you as a user. \nType !words add <words> to add words to your keyword list. Just type !words for more help on that. \nType !notifs for notification options. \nType !screenshot on or !screenshot off to enable or disable screenshots of the CubeCraft Forums homepage every 30 minutes.");
         }
+
+        if (msg.content.startsWith("!screenshot ")){
+        	if (msg.content == "!screenshot on") {
+        		users[msg.author.id][4] = true;
+        		msg.channel.sendMessage("Screenshot Preference set to on!");
+        	} else if (msg.content == "!screenshot off") {
+        		users[msg.author.id][4] = false;
+        		msg.channel.sendMessage("Screenshot Preference set to off!");
+        	} else if (msg.content == "!screenshot take") {
+        		takeSS();
+        	}
+        }
+
+        if (msg.content == "!screenshot"){
+        	msg.channel.sendMessage("Type !screenshot on or !screenshot off to enable or disable screenshots of the CubeCraft Forums homepage every 30 minutes.");
+        }
+
+        i
     }
 });
 
@@ -82,6 +121,8 @@ bot.on('ready', () => {
 
   retrieveData();
   setInterval(retrieveData, 1000*30);
+
+  setInterval(takeSS, 1000*60*30);
 });
 
 bot.login("MjY3MDA5MDE5MjUwNDc1MDA5.C1F_EQ.vsMcKDV7IfmyQca4TDg5KgIKCps");
@@ -155,4 +196,23 @@ function sleep(milliseconds) {
       break;
     }
   }
+}
+
+function takeSS() {
+	var date = new Date();
+	var addon = date.getHours() + ":" + date.getMinutes();
+	webshot('cubecraft.net/forums', "screenshot.png", options, function (err) {
+		if(!err){
+			for (key in users){
+				if (users[key][4] == true){
+					users[key][0].dmChannel.sendFile("screenshot.png",'Forums Screen Shot -' + addon + ".png");
+				}
+			}
+		}
+	});
+}
+
+function saveJSON() {
+	jsonfile.writeFile("users.json", users);
+	jsonfile.writeFile("wordlist.json", wordlist);
 }
