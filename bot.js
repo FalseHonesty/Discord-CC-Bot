@@ -63,6 +63,12 @@ bot.on("message", msg => {
 	        		}
 	        	}
 	        	msg.channel.sendMessage("Word(s) cleared from keyword list!");
+	        } else if (message.startsWith("show")){
+	        	for (key in wordlist) {
+	        		if(wordlist[key].indexOf(msg.author.id) > -1){
+	        			msg.channel.sendMessage(key + ",");
+	        		}
+	        	}
 	        }
         }
 
