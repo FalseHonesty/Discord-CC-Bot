@@ -131,7 +131,7 @@ bot.on('ready', () => {
   setInterval(takeSS, 1000*60*30);
 });
 
-bot.login("MjY3MDA5MDE5MjUwNDc1MDA5.C1F_EQ.vsMcKDV7IfmyQca4TDg5KgIKCps");
+bot.login("...");
 
 function retrieveData(){
 	request('https://cubecraft.net/forums', function (err,response,html) {
